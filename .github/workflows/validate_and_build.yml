@@ -1,4 +1,4 @@
-name: Validate, Build SQLite & Publish Datasette Pages
+name: Validate & Publish Datasette Pages
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -33,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Validate YAML Schema & Compile horology.db
+      - name: Validate YAML & Build horology.db in CI
         run: python3 src/build_db.py
 
       - name: Prepare _site directory for GitHub Pages
