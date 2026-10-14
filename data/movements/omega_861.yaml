@@ -1,0 +1,13 @@
+caliber_id: omega_861
+manufacturer: Omega
+caliber_number: '861'
+base_caliber: Lemania 1873 ebauche
+winding_type: Manual
+winding_mechanism: None (Manual)
+escapement_type: Swiss Lever
+frequency_vph: 21600
+jewels: null
+power_reserve_hours: null
+hacking: null
+hand_winding: true
+description: Introduced in 1968 to replace the complex 321, switching from a column wheel to a cam-actuated chronograph mechanism to increase robustness and simplify production.

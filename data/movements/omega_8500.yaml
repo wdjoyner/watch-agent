@@ -1,0 +1,13 @@
+caliber_id: omega_8500
+manufacturer: Omega
+caliber_number: '8500'
+base_caliber: null
+winding_type: Automatic
+winding_mechanism: Bidirectional (Reversing Wheels)
+escapement_type: Co-Axial
+frequency_vph: 25200
+jewels: null
+power_reserve_hours: null
+hacking: null
+hand_winding: true
+description: Introduced in 2007, marking Omega's return to true in-house manufacturing. Built entirely around the Co-Axial escapement, featuring dual mainspring barrels and a silicon hairspring.

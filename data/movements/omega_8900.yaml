@@ -1,0 +1,13 @@
+caliber_id: omega_8900
+manufacturer: Omega
+caliber_number: '8900'
+base_caliber: null
+winding_type: Automatic
+winding_mechanism: Bidirectional (Reversing Wheels)
+escapement_type: Co-Axial
+frequency_vph: 25200
+jewels: null
+power_reserve_hours: null
+hacking: null
+hand_winding: true
+description: First movement to receive METAS Master Chronometer certification, passing rigorous precision and magnetic resistance tests; features a jumping hour hand.

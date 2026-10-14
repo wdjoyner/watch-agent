@@ -1,0 +1,11 @@
+watch_id: omega_globemaster
+brand: Omega
+model_family: Constellation
+model_name: Globemaster Co-Axial Master Chronometer
+reference_numbers: []
+caliber_id: omega_8900
+production_year_start: null
+production_year_end: null
+tests_passed:
+- METAS Master Chronometer
+notes: The first timepiece certified as a METAS Master Chronometer.

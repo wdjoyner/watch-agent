@@ -1,0 +1,13 @@
+caliber_id: omega_2500
+manufacturer: Omega
+caliber_number: '2500'
+base_caliber: ETA 2892-A2 ebauche
+winding_type: Automatic
+winding_mechanism: Bidirectional (Reversing Wheels)
+escapement_type: Co-Axial
+frequency_vph: 25200
+jewels: null
+power_reserve_hours: null
+hacking: null
+hand_winding: true
+description: Introduced in 1999, serving as the very first serially produced caliber to feature the friction-reducing Co-Axial escapement.

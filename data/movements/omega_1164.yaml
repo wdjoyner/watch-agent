@@ -1,0 +1,13 @@
+caliber_id: omega_1164
+manufacturer: Omega
+caliber_number: '1164'
+base_caliber: ETA/Valjoux 7750 ebauche
+winding_type: Automatic
+winding_mechanism: Unidirectional (Pawl/Click)
+escapement_type: Swiss Lever
+frequency_vph: 28800
+jewels: null
+power_reserve_hours: null
+hacking: null
+hand_winding: true
+description: Highly modified automatic chronograph based on the robust ETA/Valjoux 7750 architecture.

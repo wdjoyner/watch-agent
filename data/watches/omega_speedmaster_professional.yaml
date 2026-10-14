@@ -1,0 +1,11 @@
+watch_id: omega_speedmaster_professional
+brand: Omega
+model_family: Speedmaster
+model_name: Professional "Moonwatch"
+reference_numbers: []
+caliber_id: omega_3861
+production_year_start: null
+production_year_end: null
+tests_passed:
+- METAS Master Chronometer
+notes: The current generation of the Speedmaster Professional "Moonwatch".

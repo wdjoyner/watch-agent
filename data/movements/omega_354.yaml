@@ -1,0 +1,13 @@
+caliber_id: omega_354
+manufacturer: Omega
+caliber_number: '354'
+base_caliber: null
+winding_type: Automatic
+winding_mechanism: Bumper / Hammer
+escapement_type: Swiss Lever
+frequency_vph: 19800
+jewels: null
+power_reserve_hours: null
+hacking: null
+hand_winding: true
+description: Early 1940s and 50s automatic movement where a weighted hammer bounces back and forth between two bumper springs to wind the mainspring, rather than using a 360-degree spinning rotor.

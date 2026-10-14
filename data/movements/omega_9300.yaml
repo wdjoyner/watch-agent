@@ -1,0 +1,13 @@
+caliber_id: omega_9300
+manufacturer: Omega
+caliber_number: '9300'
+base_caliber: null
+winding_type: Automatic
+winding_mechanism: Bidirectional (Reversing Wheels)
+escapement_type: Co-Axial
+frequency_vph: 28800
+jewels: null
+power_reserve_hours: null
+hacking: null
+hand_winding: true
+description: Omega's entirely in-house automatic chronograph movement, featuring a column wheel, Co-Axial escapement, and a two-register dial layout.

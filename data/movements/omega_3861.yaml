@@ -1,0 +1,13 @@
+caliber_id: omega_3861
+manufacturer: Omega
+caliber_number: '3861'
+base_caliber: Lemania 1873 architecture
+winding_type: Manual
+winding_mechanism: None (Manual)
+escapement_type: Co-Axial
+frequency_vph: 21600
+jewels: null
+power_reserve_hours: null
+hacking: null
+hand_winding: true
+description: The modern evolution of the 1861, significantly upgraded with George Daniels’ Co-Axial escapement and METAS Master Chronometer certification, making it highly anti-magnetic.

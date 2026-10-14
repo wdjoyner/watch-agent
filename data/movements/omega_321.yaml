@@ -1,0 +1,13 @@
+caliber_id: omega_321
+manufacturer: Omega
+caliber_number: '321'
+base_caliber: Lemania 2310 ebauche
+winding_type: Manual
+winding_mechanism: None (Manual)
+escapement_type: Swiss Lever
+frequency_vph: 18000
+jewels: null
+power_reserve_hours: null
+hacking: null
+hand_winding: true
+description: Omega's most famous manual-winding chronograph movement, featuring a traditional column-wheel mechanism. Highly revered by collectors for its aesthetics, complex construction, and historical significance as the movement that went to the moon.
