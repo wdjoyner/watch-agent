@@ -15,8 +15,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  validate-and-build:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -33,41 +36,10 @@ jobs:
       - name: Validate YAML Schema & Compile horology.db
         run: python3 src/build_db.py
 
-      - name: Upload horology.db & metadata for GitHub Pages
-        uses: actions/upload-artifact@v4
-        with:
-          name: sqlite-bundle
-          path: |
-            horology.db
-            metadata.json
-
-      - name: Commit updated horology.db on push to main
+      - name: Prepare _site directory for GitHub Pages
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add horology.db
-          if git diff --staged --quiet; then
-            echo "No changes to horology.db"
-          else
-            git commit -m "chore(db): auto-compile horology.db from YAML [skip ci]"
-            git push
-          fi
-
-  deploy-pages:
-    needs: validate-and-build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Download compiled horology.db
-        uses: actions/download-artifact@v4
-        with:
-          name: sqlite-bundle
-          path: _site
-
-      - name: Generate Datasette Lite Index Page
-        run: |
+          mkdir -p _site
+          cp horology.db metadata.json _site/
           cat << 'HTML' > _site/index.html
           <!DOCTYPE html>
           <html lang="en">
