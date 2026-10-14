@@ -45,11 +45,9 @@ def build_database():
     );
     """)
     
-    # Insert movements with fallback key mapping
+    # Insert movements with safe defaults
     for yml_file in MOVEMENTS_DIR.glob("*.yaml"):
         data = yaml.safe_load(yml_file.read_text(encoding="utf-8")) or {}
-        
-        # Map varying keys safely
         power_reserve = data.get("power_reserve_hrs") or data.get("power_reserve_hours") or 40.0
         diameter = data.get("diameter_mm") or 36.6
         height = data.get("height_mm") or 4.5
@@ -73,25 +71,28 @@ def build_database():
             str(notes)
         ))
         
-    # Insert watches
+    # Insert watches with safe fallbacks for model and dimensions
     for yml_file in WATCHES_DIR.glob("*.yaml"):
         data = yaml.safe_load(yml_file.read_text(encoding="utf-8")) or {}
+        watch_id = data.get("watch_id") or yml_file.stem
+        model = data.get("model") or data.get("watch_model") or data.get("name") or watch_id
+        
         cursor.execute("""
         INSERT INTO watches (watch_id, brand, model, family, reference_number, caliber_id, case_diameter_mm)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
-            data.get("watch_id"),
-            data.get("brand"),
-            data.get("model"),
+            watch_id,
+            data.get("brand") or "Unknown Brand",
+            model,
             data.get("family"),
             data.get("reference_number"),
             data.get("caliber_id"),
-            data.get("case_diameter_mm") or 40.0
+            float(data.get("case_diameter_mm") or 40.0)
         ))
         
     conn.commit()
     conn.close()
-    print("[OK] Database built successfully from all movement YAML records.")
+    print("[OK] Database built successfully with robust fallbacks.")
 
 def generate_html_index():
     conn = sqlite3.connect(DB_PATH)
