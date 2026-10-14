@@ -220,3 +220,71 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# --- Generate Self-Contained Static HTML Catalog for GitHub Pages ---
+def generate_html_index():
+    conn = sqlite3.connect("horology.db")
+    cursor = conn.cursor()
+    
+    # Fetch watches
+    cursor.execute("SELECT watch_id, brand, model, family, reference_number, caliber_id, case_diameter_mm FROM watches")
+    watches = cursor.fetchall()
+    
+    # Fetch movements
+    cursor.execute("SELECT caliber_id, manufacturer, family, winding_type, frequency_vph, power_reserve_hrs FROM movements")
+    movements = cursor.fetchall()
+    conn.close()
+
+    html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Watch-Agent Horology Database</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #121212; color: #e0e0e0; margin: 0; padding: 2rem; }
+    h1, h2 { color: #ffffff; border-bottom: 1px solid #333; padding-bottom: 0.5rem; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; background: #1e1e1e; border-radius: 6px; overflow: hidden; }
+    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #2a2a2a; }
+    th { background: #252525; color: #ffffff; font-weight: 600; }
+    tr:hover { background: #2a2a2a; }
+    .badge { background: #007acc; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem; }
+    .footer { margin-top: 3rem; text-align: center; color: #777; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>Watch-Agent Horology Database</h1>
+  <p>Local SQLite-backed mechanical watch and movement registry.</p>
+
+  <h2>Reference Watches</h2>
+  <table>
+    <tr><th>Watch ID</th><th>Brand</th><th>Model</th><th>Family</th><th>Reference</th><th>Caliber</th><th>Diameter</th></tr>
+"""
+    for w in watches:
+        html += f"    <tr><td><code>{w[0]}</code></td><td>{w[1]}</td><td>{w[2]}</td><td>{w[3] or '-'}</td><td>{w[4] or '-'}</td><td><code>{w[5]}</code></td><td>{w[6]} mm</td></tr>
+"
+
+    html += """  </table>
+
+  <h2>Movement Calibers</h2>
+  <table>
+    <tr><th>Caliber ID</th><th>Manufacturer</th><th>Family</th><th>Winding</th><th>Frequency</th><th>Power Reserve</th></tr>
+"""
+    for m in movements:
+        html += f"    <tr><td><code>{m[0]}</code></td><td>{m[1]}</td><td>{m[2] or '-'}</td><td>{m[3]}</td><td>{m[4]} vph</td><td>{m[5]} hrs</td></tr>
+"
+
+    html += """  </table>
+
+  <div class="footer">
+    <p>Generated automatically via Python Pydantic pipeline &bull; <a href="horology.db" style="color: #4da6ff;">Download SQLite DB</a></p>
+  </div>
+</body>
+</html>
+"""
+    Path("index.html").write_text(html, encoding="utf-8")
+    print("[OK] Generated self-contained index.html from SQLite database.")
+
+if __name__ == "__main__":
+    generate_html_index()
