@@ -135,3 +135,52 @@ If Git refuses to pull or push because both your local machine and the GitHub Ac
 
 - **Coding Design & System Architecture:** Jointly designed by **David Joyner** and **Gemini Argon**, combining relational horological taxonomy, multi-machine Git workflows, and compact LaTeX cataloging.
 - **Python Implementation & Automation:** Python scripts (`src/schema.py`, `src/build_db.py`, `src/agent_ingest.py`, `src/export_latex.py`, and `src/seed_core_calibers.py`), Pydantic validation loops, and GitHub Actions CI/CD pipelines developed with assistance from **Gemini Argon**.
+
+---
+
+## 6. AI-Assisted Narrative-to-YAML Ingestion Pipeline
+
+To convert unstructured historical notes, watch reviews, or technical descriptions into validated database records, use the following prose specification standard and AI prompt template with an LLM (such as Gemini).
+
+### A. Required Elements in the Prose Narrative
+When writing or providing a prose description for conversion, ensure it contains the following technical details so the AI agent can accurately map them to `MovementSpec` and `WatchReference` schemas:
+
+1. **Movement Core Identification:** Manufacturer name, exact caliber number or trade name, and ebauche ancestry (if applicable).
+2. **Kinematic Architecture:** Winding type (`Manual` vs. `Automatic`) and specific winding mechanism (e.g., `Bidirectional (Seiko Magic Lever)`, `Bidirectional (Reversing Wheels)`, `Bidirectional (Pellaton Pawl)`, or `None (Manual)`).
+3. **Escapement & Performance:** Escapement type (`Swiss Lever`, `Co-Axial`, `Chronergy`, etc.), operating frequency in VPH (e.g., `18000`, `21600`, `28800`), jewel count, and power reserve in hours.
+4. **Physical Dimensions:** Diameter and height in millimeters (mm).
+5. **Watch Reference Linkage (Optional):** Brand, model name, family, reference numbers (e.g., `2531.80.00`), production years, and case diameter.
+6. **Test Certifications (Optional):** Standards passed (e.g., `COSC (ISO 3159)`, `ISO 6425 Diver`, `DIN 8309 Antimagnetic`), accuracy tolerances in seconds/day, water resistance in bar, and magnetic resistance in Gauss.
+
+---
+
+### B. AI Conversion Prompt Template
+
+Copy and paste the prompt below into Gemini along with your prose narrative:
+
+```text
+You are an expert horological data archivist and Python Pydantic engineer. Your task is to read the narrative description of a mechanical watch and its movement below, and extract two strictly valid YAML blocks: one for the movement spec and one for the watch reference (if watch details are provided).
+
+### Schema Constraints & Allowed Enums:
+1. winding_type: Must be exactly "Manual" or "Automatic".
+2. winding_mechanism: Must be one of:
+   - "None (Manual)"
+   - "Unidirectional (Pawl/Click)"
+   - "Bidirectional (Reversing Wheels)"
+   - "Bidirectional (Seiko Magic Lever)"
+   - "Bidirectional (Pellaton Pawl)"
+   - "Bumper / Hammer"
+   - "Peripheral Rotor"
+   - "Micro-Rotor / Planetary"
+3. escapement_type: Must be one of:
+   - "Swiss Lever", "Co-Axial", "Chronergy", "Detent", "Cylinder", "Anchor", "Duplex"
+4. frequencies: 18000, 19800, 21600, 28800, 36000, etc.
+
+### Output Format:
+Return ONLY two markdown code blocks containing valid YAML files:
+1. File 1: `data/movements/<caliber_id>.yaml`
+2. File 2: `data/watches/<watch_id>.yaml` (if applicable)
+
+### Narrative Description to Convert:
+[INSERT YOUR PROSE NARRATIVE HERE]
+```
