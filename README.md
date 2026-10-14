@@ -128,3 +128,10 @@ If Git refuses to pull or push because both your local machine and the GitHub Ac
 - **Manually trigger a rebuild:** `gh workflow run "Validate, Build SQLite & Publish Datasette Pages"`
 
 > **Note on GitHub Actions Node.js Warnings:** You may occasionally see an annotation in GitHub Actions stating *"Node.js 20 is deprecated... actions are being forced to run on Node.js 24"*. This is a harmless informational notice from GitHub's cloud runner environment regarding its internal JavaScript action wrappers and does not affect your build or deployment.
+
+---
+
+## 5. Acknowledgements
+
+- **Coding Design & System Architecture:** Jointly designed by **David Joyner** and **Gemini Argon**, combining relational horological taxonomy, multi-machine Git workflows, and compact LaTeX cataloging.
+- **Python Implementation & Automation:** Python scripts (`src/schema.py`, `src/build_db.py`, `src/agent_ingest.py`, `src/export_latex.py`, and `src/seed_core_calibers.py`), Pydantic validation loops, and GitHub Actions CI/CD pipelines developed with assistance from **Gemini Argon**.
