@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Watch-Agent Horology Database</title>
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: #1a1a1a; }
+    iframe { border: none; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <script>
+    const version = Date.now();
+    const loc = window.location;
+    const cleanPath = loc.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
+    const baseUrl = loc.origin + cleanPath;
+    
+    const dbUrl = encodeURIComponent(baseUrl + '/horology.db?v=' + version);
+    const metaUrl = encodeURIComponent(baseUrl + '/metadata.json?v=' + version);
+    const liteUrl = 'https://lite.datasette.io/?url=' + dbUrl + '&metadata=' + metaUrl + '#/horology/v_watch_catalog';
+    
+    const iframe = document.createElement('iframe');
+    iframe.src = liteUrl;
+    iframe.setAttribute('allow', 'clipboard-write');
+    document.body.appendChild(iframe);
+  </script>
+</body>
+</html>
