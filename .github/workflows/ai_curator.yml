@@ -1,0 +1,42 @@
+name: AI Watch Curator (Self-Hosted Ollama)
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  ingest-watch-issue:
+    # Only run if the issue has the 'ai-ingest' label
+    if: contains(github.event.issue.labels.*.name, 'ai-ingest')
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract YAML via local Ollama watch-agent
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -q -r requirements.txt
+          printf "%s\n" "$ISSUE_BODY" | .venv/bin/python3 src/agent_ingest.py --build
+
+      - name: Create Pull Request with new YAML & SQLite DB
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "feat(data): ingest watch from issue #${{ github.event.issue.number }}"
+          branch: "ai-ingest/issue-${{ github.event.issue.number }}"
+          title: "AI Ingest: ${{ github.event.issue.title }}"
+          body: |
+            Automated horological extraction by local `watch-agent` (`qwen3:30b`) for Issue #${{ github.event.issue.number }}.
+            
+            - Validated against `MovementSpec` and `WatchReference` Pydantic schemas.
+            - Rebuilt `horology.db`.
+            
+            Closes #${{ github.event.issue.number }}
+          delete-branch: true

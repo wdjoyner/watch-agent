@@ -1,0 +1,14 @@
+name: "Add Mechanical Watch / Movement"
+description: "Paste raw notes or specifications for watch-agent to extract into YAML and SQLite."
+title: "Add Watch: "
+labels: ["ai-ingest"]
+body:
+  - type: textarea
+    id: watch_notes
+    attributes:
+      label: "Watch & Movement Notes"
+      description: "Paste unstructured specs (brand, reference, movement caliber, winding system, vph, water resistance, accuracy standards, production years)."
+      placeholder: |
+        Example: IWC Ingenieur Automatic Ref. 3239-02, produced 2013-2016...
+    validations:
+      required: true

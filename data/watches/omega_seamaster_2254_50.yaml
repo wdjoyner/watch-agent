@@ -1,0 +1,17 @@
+watch_id: omega_seamaster_2254_50
+brand: Omega
+model_family: Seamaster Professional 300M
+model_name: "Seamaster 300M Chronometer (Peter Blake)"
+reference_numbers:
+  - "2254.50.00"
+caliber_id: omega_1120
+production_year_start: 1996
+production_year_end: 2008
+tests_passed:
+  - standard: "COSC (ISO 3159)"
+    rated_accuracy_sec_per_day: [-4.0, 6.0]
+    water_resistance_bar: 30.0
+    water_resistance_meters: 300
+    magnetic_resistance_gauss: 60
+    test_notes: "Certified chronometer with helium escape valve for saturation diving."
+notes: "Features black wave dial, sword hands, and luminous triangle at 12 o'clock."

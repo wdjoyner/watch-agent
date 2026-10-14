@@ -1,0 +1,19 @@
+watch_id: seiko_alpinist_sarb017
+brand: Seiko
+model_family: Prospex/JDM Alpinist
+model_name: Alpinist
+reference_numbers:
+- SARB017
+caliber_id: seiko_6r15
+production_year_start: 2006
+production_year_end: 2018
+tests_passed:
+- standard: ISO 22810 (Standard Water Resistance)
+  rated_accuracy_sec_per_day: null
+  water_resistance_bar: null
+  water_resistance_meters: null
+  magnetic_resistance_gauss: null
+  test_notes: 20 bar / 200m water resistance
+notes: Factory accuracy spec is -15 to +25 seconds per day, tested to 20 bar / 200m
+  water resistance (ISO 22810) with an inner rotating compass bezel and 60 gauss magnetic
+  resistance.

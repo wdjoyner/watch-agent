@@ -1,0 +1,13 @@
+caliber_id: eta_6497_1
+manufacturer: ETA / Unitas
+caliber_number: "6497-1"
+base_caliber: "Unitas 6497"
+winding_type: "Manual"
+winding_mechanism: "None (Manual)"
+escapement_type: "Swiss Lever"
+frequency_vph: 18000
+jewels: 17
+power_reserve_hours: 46.0
+hacking: false
+hand_winding: true
+description: "Classic 16.5 ligne Lépine pocket watch architecture widely adopted for oversized manual-wind wristwatches and horological training."

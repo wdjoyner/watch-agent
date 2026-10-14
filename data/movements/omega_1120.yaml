@@ -1,0 +1,13 @@
+caliber_id: omega_1120
+manufacturer: Omega
+caliber_number: "1120"
+base_caliber: "ETA 2892-A2"
+winding_type: "Automatic"
+winding_mechanism: "Bidirectional (Reversing Wheels)"
+escapement_type: "Swiss Lever"
+frequency_vph: 28800
+jewels: 23
+power_reserve_hours: 44.0
+hacking: true
+hand_winding: true
+description: "Rhodium-plated automatic chronometer movement derived from the ETA 2892-A2 with modified automatic bridge and 2 additional jewels."
