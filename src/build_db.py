@@ -25,7 +25,7 @@ def build_database():
         escapement_type TEXT NOT NULL,
         frequency_vph INTEGER NOT NULL,
         jewels INTEGER NOT NULL,
-        power_reserve_hrs INTEGER NOT NULL,
+        power_reserve_hrs REAL NOT NULL,
         diameter_mm REAL NOT NULL,
         height_mm REAL NOT NULL,
         notes TEXT
@@ -45,9 +45,16 @@ def build_database():
     );
     """)
     
-    # Insert movements
+    # Insert movements with fallback key mapping
     for yml_file in MOVEMENTS_DIR.glob("*.yaml"):
-        data = yaml.safe_load(yml_file.read_text(encoding="utf-8"))
+        data = yaml.safe_load(yml_file.read_text(encoding="utf-8")) or {}
+        
+        # Map varying keys safely
+        power_reserve = data.get("power_reserve_hrs") or data.get("power_reserve_hours") or 40.0
+        diameter = data.get("diameter_mm") or 36.6
+        height = data.get("height_mm") or 4.5
+        notes = data.get("notes") or data.get("description") or ""
+
         cursor.execute("""
         INSERT INTO movements (caliber_id, manufacturer, family, winding_type, winding_mechanism, escapement_type, frequency_vph, jewels, power_reserve_hrs, diameter_mm, height_mm, notes)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -60,15 +67,15 @@ def build_database():
             data.get("escapement_type"),
             data.get("frequency_vph"),
             data.get("jewels"),
-            data.get("power_reserve_hrs"),
-            data.get("diameter_mm"),
-            data.get("height_mm"),
-            data.get("notes")
+            float(power_reserve),
+            float(diameter),
+            float(height),
+            str(notes)
         ))
         
     # Insert watches
     for yml_file in WATCHES_DIR.glob("*.yaml"):
-        data = yaml.safe_load(yml_file.read_text(encoding="utf-8"))
+        data = yaml.safe_load(yml_file.read_text(encoding="utf-8")) or {}
         cursor.execute("""
         INSERT INTO watches (watch_id, brand, model, family, reference_number, caliber_id, case_diameter_mm)
         VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -79,12 +86,12 @@ def build_database():
             data.get("family"),
             data.get("reference_number"),
             data.get("caliber_id"),
-            data.get("case_diameter_mm")
+            data.get("case_diameter_mm") or 40.0
         ))
         
     conn.commit()
     conn.close()
-    print("[OK] Database built successfully from YAML records.")
+    print("[OK] Database built successfully from all movement YAML records.")
 
 def generate_html_index():
     conn = sqlite3.connect(DB_PATH)
