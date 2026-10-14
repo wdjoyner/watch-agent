@@ -16,3 +16,9 @@ Thumbs.db
 # Editor directories
 .vscode/
 .idea/
+
+# LaTeX build files
+*.aux
+*.log
+*.out
+*.toc
