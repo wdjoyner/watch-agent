@@ -1,0 +1,14 @@
+caliber_id: seiko_7s26
+manufacturer: Seiko
+caliber_number: 7S26
+base_caliber: null
+winding_type: Automatic
+winding_mechanism: Bidirectional (Seiko Magic Lever)
+escapement_type: Swiss Lever
+frequency_vph: 21600
+jewels: 21
+power_reserve_hours: 41.0
+hacking: false
+hand_winding: true
+description: Workhorse automatic caliber utilizing Seiko's 1959 V-shaped Magic Lever
+  bidirectional pawl-winding system with minimal moving parts.

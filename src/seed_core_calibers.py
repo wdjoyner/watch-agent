@@ -14,7 +14,7 @@ MOVEMENTS = [
         "manufacturer": "ETA / Unitas",
         "caliber_number": "6497-1",
         "winding_type": "Manual",
-        "winding_mechanism": None,
+        "winding_mechanism": "None (Manual)",
         "escapement_type": "Swiss Lever",
         "frequency_vph": 18000,
         "jewels": 17,
@@ -22,14 +22,14 @@ MOVEMENTS = [
         "diameter_mm": 36.6,
         "height_mm": 4.5,
         "functions": ["Hours", "Minutes", "Small Seconds at 9"],
-        "notes": "Classic 16.5-ligne hunter pocket watch ebauche widely used in watchmaking instruction and large-case wristwatches."
+        "description": "Classic 16.5-ligne hunter pocket watch ebauche featuring a robust three-tier architecture with traditional click spring, crown wheel, and ratchet wheel layout."
     },
     {
         "caliber_id": "seagull_st3600",
         "manufacturer": "Tianjin Sea-Gull",
         "caliber_number": "ST3600",
         "winding_type": "Manual",
-        "winding_mechanism": None,
+        "winding_mechanism": "None (Manual)",
         "escapement_type": "Swiss Lever",
         "frequency_vph": 21600,
         "jewels": 17,
@@ -37,14 +37,14 @@ MOVEMENTS = [
         "diameter_mm": 36.6,
         "height_mm": 4.5,
         "functions": ["Hours", "Minutes", "Small Seconds at 9"],
-        "notes": "21,600 vph architectural clone of the Unitas 6497 with three-tier bridge topology ideal for custom watch builds and servicing practice."
+        "description": "21,600 vph architectural clone of the Unitas 6497 with three-tier bridge topology ideal for custom watch builds and servicing practice."
     },
     {
         "caliber_id": "omega_1120",
         "manufacturer": "Omega",
         "caliber_number": "1120",
         "winding_type": "Automatic",
-        "winding_mechanism": "Reverser Gears",
+        "winding_mechanism": "Bidirectional (Reversing Wheels)",
         "escapement_type": "Swiss Lever",
         "frequency_vph": 28800,
         "jewels": 23,
@@ -52,14 +52,14 @@ MOVEMENTS = [
         "diameter_mm": 25.6,
         "height_mm": 3.6,
         "functions": ["Hours", "Minutes", "Central Seconds", "Quickset Date", "Hacking"],
-        "notes": "Heavily refined derivative of the ETA 2892-A2 featuring a rhodium-plated finish, redesigned automatic bridge, and two additional jewels."
+        "description": "Heavily refined derivative of the ETA 2892-A2 featuring a rhodium-plated finish, redesigned automatic bridge, and two additional jewels."
     },
     {
         "caliber_id": "valjoux_72",
         "manufacturer": "Valjoux",
         "caliber_number": "72",
         "winding_type": "Manual",
-        "winding_mechanism": None,
+        "winding_mechanism": "None (Manual)",
         "escapement_type": "Swiss Lever",
         "frequency_vph": 18000,
         "jewels": 17,
@@ -67,14 +67,14 @@ MOVEMENTS = [
         "diameter_mm": 29.5,
         "height_mm": 6.25,
         "functions": ["Hours", "Minutes", "Small Seconds", "12-Hour Column-Wheel Chronograph"],
-        "notes": "Historic 13-ligne lateral-clutch, 9-pillar column-wheel chronograph movement used in vintage Rolex Daytona, Heuer Carrera, and Breitling Navitimer references."
+        "description": "Historic 13-ligne lateral-clutch, 9-pillar column-wheel chronograph movement used in vintage Rolex Daytona, Heuer Carrera, and Breitling Navitimer references."
     },
     {
         "caliber_id": "seiko_7s26",
         "manufacturer": "Seiko",
         "caliber_number": "7S26",
         "winding_type": "Automatic",
-        "winding_mechanism": "Magic Lever",
+        "winding_mechanism": "Bidirectional (Seiko Magic Lever)",
         "escapement_type": "Swiss Lever",
         "frequency_vph": 21600,
         "jewels": 21,
@@ -82,14 +82,14 @@ MOVEMENTS = [
         "diameter_mm": 27.4,
         "height_mm": 4.9,
         "functions": ["Hours", "Minutes", "Central Seconds", "Day", "Date"],
-        "notes": "Workhorse automatic caliber utilizing Seiko's 1959 V-shaped Magic Lever bidirectional pawl-winding system with minimal moving parts."
+        "description": "Workhorse automatic caliber utilizing Seiko's 1959 V-shaped Magic Lever bidirectional pawl-winding system with minimal moving parts."
     },
     {
         "caliber_id": "seiko_4r36",
         "manufacturer": "Seiko",
         "caliber_number": "4R36 (NH36)",
         "winding_type": "Automatic",
-        "winding_mechanism": "Magic Lever",
+        "winding_mechanism": "Bidirectional (Seiko Magic Lever)",
         "escapement_type": "Swiss Lever",
         "frequency_vph": 21600,
         "jewels": 24,
@@ -97,14 +97,14 @@ MOVEMENTS = [
         "diameter_mm": 27.4,
         "height_mm": 5.32,
         "functions": ["Hours", "Minutes", "Central Seconds", "Day", "Date", "Hacking", "Hand-Winding"],
-        "notes": "Modernized Magic Lever automatic architecture adding manual crown winding and stop-seconds (hacking) to the classic 7S26 foundation."
+        "description": "Modernized Magic Lever automatic architecture adding manual crown winding and stop-seconds (hacking) to the classic 7S26 foundation."
     },
     {
         "caliber_id": "iwc_8541",
         "manufacturer": "IWC",
         "caliber_number": "8541",
         "winding_type": "Automatic",
-        "winding_mechanism": "Pawl-Winding (Pellaton)",
+        "winding_mechanism": "Bidirectional (Pellaton Pawl)",
         "escapement_type": "Swiss Lever",
         "frequency_vph": 19800,
         "jewels": 25,
@@ -112,7 +112,7 @@ MOVEMENTS = [
         "diameter_mm": 28.0,
         "height_mm": 5.9,
         "functions": ["Hours", "Minutes", "Central Seconds", "Date", "Hacking"],
-        "notes": "Albert Pellaton's heart-cam and dual-pulling ruby-roller rocker pawl winding architecture."
+        "description": "Albert Pellaton's heart-cam and dual-pulling ruby-roller rocker pawl winding architecture."
     }
 ]
 
@@ -163,7 +163,7 @@ WATCHES = [
                 "accuracy_max_spd": 6.0,
                 "water_resistance_bar": 5.0,
                 "magnetic_resistance_gauss": None,
-                "notes": "Powered by Rolex Caliber 727 (heavily modified Valjoux 72 uprated to 21,600 vph with Microstella balance)."
+                "notes": "Powered by Rolex Caliber 727 (heavily modified Valjoux 72 uprated to 21,600 vph)."
             }
         ]
     },

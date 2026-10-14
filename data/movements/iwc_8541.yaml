@@ -1,0 +1,14 @@
+caliber_id: iwc_8541
+manufacturer: IWC
+caliber_number: '8541'
+base_caliber: null
+winding_type: Automatic
+winding_mechanism: Bidirectional (Pellaton Pawl)
+escapement_type: Swiss Lever
+frequency_vph: 19800
+jewels: 25
+power_reserve_hours: 44.0
+hacking: false
+hand_winding: true
+description: Albert Pellaton's heart-cam and dual-pulling ruby-roller rocker pawl
+  winding architecture.

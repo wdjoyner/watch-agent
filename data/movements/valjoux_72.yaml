@@ -1,0 +1,14 @@
+caliber_id: valjoux_72
+manufacturer: Valjoux
+caliber_number: '72'
+base_caliber: null
+winding_type: Manual
+winding_mechanism: None (Manual)
+escapement_type: Swiss Lever
+frequency_vph: 18000
+jewels: 17
+power_reserve_hours: 46.0
+hacking: false
+hand_winding: true
+description: Historic 13-ligne lateral-clutch, 9-pillar column-wheel chronograph movement
+  used in vintage Rolex Daytona, Heuer Carrera, and Breitling Navitimer references.

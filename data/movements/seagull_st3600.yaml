@@ -1,0 +1,14 @@
+caliber_id: seagull_st3600
+manufacturer: Tianjin Sea-Gull
+caliber_number: ST3600
+base_caliber: null
+winding_type: Manual
+winding_mechanism: None (Manual)
+escapement_type: Swiss Lever
+frequency_vph: 21600
+jewels: 17
+power_reserve_hours: 45.0
+hacking: false
+hand_winding: true
+description: 21,600 vph architectural clone of the Unitas 6497 with three-tier bridge
+  topology ideal for custom watch builds and servicing practice.
