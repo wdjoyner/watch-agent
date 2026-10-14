@@ -1,0 +1,30 @@
+{
+  "title": "Watch-Agent: Mechanical Horology Database",
+  "description": "Relational database of mechanical and automatic wristwatch calibers, winding mechanisms, and certification tests.",
+  "databases": {
+    "horology": {
+      "tables": {
+        "movements": {
+          "facets": ["manufacturer", "winding_type", "winding_mechanism", "escapement_type", "frequency_vph"],
+          "sort": "caliber_id"
+        },
+        "watches": {
+          "facets": ["brand", "model_family", "caliber_id"],
+          "sort": "brand"
+        },
+        "watch_tests": {
+          "facets": ["standard", "water_resistance_bar"]
+        },
+        "v_watch_catalog": {
+          "facets": ["brand", "winding_mechanism", "frequency_vph", "escapement_type"]
+        }
+      },
+      "queries": {
+        "certified_chronometers_and_divers": {
+          "title": "Chronometer & Diver Test Matrix",
+          "sql": "SELECT w.brand, w.model_name, m.caliber_number, m.winding_mechanism, m.frequency_vph, t.standard, t.accuracy_min_spd, t.accuracy_max_spd, t.water_resistance_bar, t.magnetic_resistance_gauss FROM watches w JOIN movements m ON w.caliber_id = m.caliber_id JOIN watch_tests t ON w.watch_id = t.watch_id ORDER BY w.brand, w.model_name;"
+        }
+      }
+    }
+  }
+}

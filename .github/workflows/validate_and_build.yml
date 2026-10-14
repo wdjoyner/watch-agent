@@ -1,16 +1,18 @@
-name: Validate Schema & Build SQLite DB
+name: Validate, Build SQLite & Publish Datasette Pages
 
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'data/**'
-      - 'src/**'
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   validate-and-build:
@@ -31,8 +33,15 @@ jobs:
       - name: Validate YAML Schema & Compile horology.db
         run: python3 src/build_db.py
 
+      - name: Upload horology.db & metadata for GitHub Pages
+        uses: actions/upload-artifact@v4
+        with:
+          name: sqlite-bundle
+          path: |
+            horology.db
+            metadata.json
+
       - name: Commit updated horology.db on push to main
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -43,3 +52,55 @@ jobs:
             git commit -m "chore(db): auto-compile horology.db from YAML [skip ci]"
             git push
           fi
+
+  deploy-pages:
+    needs: validate-and-build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download compiled horology.db
+        uses: actions/download-artifact@v4
+        with:
+          name: sqlite-bundle
+          path: _site
+
+      - name: Generate Datasette Lite Index Page
+        run: |
+          cat << 'HTML' > _site/index.html
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Watch-Agent Horology Database</title>
+            <style>
+              body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: #1a1a1a; }
+              iframe { border: none; width: 100%; height: 100%; }
+            </style>
+          </head>
+          <body>
+            <script>
+              const baseUrl = window.location.origin + window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
+              const dbUrl = encodeURIComponent(baseUrl + '/horology.db');
+              const metaUrl = encodeURIComponent(baseUrl + '/metadata.json');
+              const liteUrl = `https://lite.datasette.io/?url=${dbUrl}&metadata=${metaUrl}#/horology/v_watch_catalog`;
+              document.write(`<iframe src="${liteUrl}" allow="clipboard-write"></iframe>`);
+            </script>
+          </body>
+          </html>
+          HTML
+          touch _site/.nojekyll
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
