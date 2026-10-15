@@ -287,10 +287,10 @@ document.querySelectorAll('table.sortable th').forEach((th, i) => th.addEventLis
 
 
 # ---------------------------------------------------------------------- main
-def main() -> int:
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--check", action="store_true", help="validate only; do not write horology.db or index.html")
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
 
     movements, watches, errors = load_all()
     if errors:
