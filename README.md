@@ -1,8 +1,8 @@
 # Watch-Agent: Automated Mechanical Horology Database & Archivist
 
-**Live Interactive Catalog (Datasette Lite):** [https://wdjoyner.github.io/watch-agent/](https://wdjoyner.github.io/watch-agent/)
+**Live Catalog:** [https://wdjoyner.github.io/watch-agent/](https://wdjoyner.github.io/watch-agent/)
 
-`watch-agent` is an automated data engineering and archival pipeline for mechanical and automatic wristwatches and movements. It extracts unstructured horological notes into strictly validated YAML records using a local LLM (`qwen3:30b` via Ollama) paired with Pydantic self-correction, compiles the records into a normalized SQLite relational database (`horology.db`), and publishes both an interactive browser-based SQL catalog (via GitHub Pages and Datasette Lite) and a typeset LaTeX reference manual (`horology_catalog.pdf`).
+`watch-agent` is an automated data engineering and archival pipeline for mechanical and automatic wristwatches and movements. It extracts unstructured horological notes into strictly validated YAML records using a local LLM (`qwen3:30b` via Ollama) paired with Pydantic self-correction, compiles the records into a normalized SQLite relational database (`horology.db`), and publishes both a searchable web catalog on GitHub Pages (with a link to query the database in Datasette Lite) and a typeset LaTeX reference manual (`horology_catalog.pdf`).
 
 ---
 
@@ -15,9 +15,9 @@
    - **`MovementSpec`**: Validates `caliber_id`, `manufacturer`, `caliber_number`, `winding_type` (`Manual` vs. `Automatic`), `winding_mechanism` (e.g., `Magic Lever`, `Reverser Gears`, `Pawl-Winding`), `escapement_type` (`Swiss Lever`, `Co-Axial`, `Chronergy`, `Detent`), `frequency_vph`, `jewels`, and `power_reserve_hours`.
    - **`WatchReference`**: Validates `watch_id`, `brand`, `model_name`, `model_family`, `reference_numbers`, foreign-key link to `caliber_id`, production years, and nested **`TestCertification`** records (`COSC`, `METAS`, `ISO 6425`, accuracy bounds in seconds/day, water resistance in bar, and magnetic resistance in Gauss).
 3. **Relational SQLite Compiler (`src/build_db.py`)**
-   Scans all YAML files under `data/`, validates every record against `src/schema.py`, and builds `horology.db` from scratch with foreign-key enforcement (`PRAGMA foreign_keys = ON`). Generates three core tables (`movements`, `watches`, `watch_tests`) and a pre-joined view (`v_watch_catalog`).
-4. **Automated GitHub Actions & Datasette Lite Hosting (`.github/workflows/validate_and_build.yml`)**
-   On every push to `main`, GitHub Actions validates all YAML files, compiles an updated `horology.db`, commits the binary database back to the repository, and deploys a static WebAssembly SQL interface powered by Datasette Lite and `metadata.json` to GitHub Pages.
+   Scans all YAML files under `data/`, validates every record against `src/schema.py`, and builds `horology.db` from scratch with foreign-key enforcement (`PRAGMA foreign_keys = ON`). Generates three core tables (`movements`, `watches`, `watch_tests`), a pre-joined view (`v_watch_catalog`), and the static web page `index.html`. If any file is invalid it lists **every** problem in **every** file and builds nothing.
+4. **GitHub Actions & GitHub Pages (`.github/workflows/build_and_deploy.yml`)**
+   On every push to `main`, GitHub Actions validates all YAML files, builds `horology.db` and `index.html`, and publishes them to GitHub Pages. Nothing is committed back to the repository, so there are no bot commits to pull. If validation fails, the run is marked red, the error list is in its log, and the website keeps showing the last good version. (One-time setting: *Settings → Pages → Build and deployment → Source = GitHub Actions*.)
 5. **Typeset LaTeX Reference Catalog (`src/export_latex.py`)**
    Queries `horology.db` directly to generate `horology_catalog.tex` and `horology_catalog.pdf` using compact horological nomenclature codes and `longtable` multi-page layouts.
 
@@ -25,14 +25,15 @@
 
 ## 2. Repository Directory Structure
 
-- `.github/workflows/validate_and_build.yml` — CI/CD: validates YAML, builds `horology.db`, deploys Pages
+- `.github/workflows/build_and_deploy.yml` — CI/CD: validates YAML, builds `horology.db` + `index.html`, deploys Pages
+- `docs/YAML_FORMAT.md` — complete record format; paste this into an AI when asking it to write YAML
 - `data/movements/` — Validated caliber YAML files (e.g., `eta_6497_1.yaml`)
 - `data/watches/` — Validated watch reference YAML files
 - `src/schema.py` — Pydantic v2 models & horological validation rules
 - `src/build_db.py` — Compiles YAML records into SQLite (`horology.db`)
 - `src/agent_ingest.py` — Ollama LLM text-to-YAML extractor with retry loop
 - `src/export_latex.py` — Generates compact LaTeX catalog from `horology.db`
-- `horology.db` — Compiled SQLite relational database
+- `horology.db`, `index.html` — built locally or by CI; not committed (listed in `.gitignore`)
 - `horology_catalog.tex` / `horology_catalog.pdf` — Typeset print catalog
 - `metadata.json` — Datasette facets and canned SQL query definitions
 - `requirements.txt` — Python dependencies (`pydantic`, `pyyaml`, `requests`)
@@ -49,9 +50,10 @@ Ensure Ollama is running locally (`ollama list`), activate your virtual environm
     python3 src/agent_ingest.py --type watch --build "Omega Seamaster Professional 300M Chronometer ref 2531.80.00, powered by caliber omega_1120, produced 1993 to 2006, COSC certified (-4 to +6 spd) and 30 bar water resistance."
 
 ### Manually Validating YAML & Building `horology.db`
-If you create or edit YAML files by hand in `data/movements/` or `data/watches/`, run the compiler to verify schema compliance and rebuild the SQLite database:
+If you create or edit YAML files by hand (or with an AI) in `data/movements/` or `data/watches/`, check them before pushing:
 
-    python3 src/build_db.py
+    python3 src/build_db.py --check     # report problems only
+    python3 src/build_db.py             # also build horology.db and index.html (open index.html to preview the site)
 
 ### Generating the Typeset LaTeX Catalog (`horology_catalog.pdf`)
 To keep multi-column specification tables readable within standard letter-page margins without overflowing, `src/export_latex.py` maps verbose horological descriptions to compact 2-to-4-character alphanumeric codes and wraps long reference lists inside fixed-width columns:
@@ -84,50 +86,20 @@ To keep multi-column specification tables readable within standard letter-page m
 
 ## 4. Multi-Machine Git Synchronization & Troubleshooting
 
-Because this repository is used across multiple machines (macOS and Ubuntu Linux) **and** features an automated GitHub Actions bot that compiles `horology.db` and commits it back to `main` after every push, follow these guidelines to avoid Git push/pull conflicts:
-
-### Routine Sync Before Starting Work on Either Machine
-Always pull with `--rebase` before making new changes locally so your machine downloads the latest `horology.db` compiled by the GitHub Actions bot:
+`horology.db` and `index.html` are no longer committed (CI builds them), so the old conflicts on the binary database cannot happen. The routine is:
 
     cd ~/Projects/watch-agent
-    git pull origin main --rebase
+    git pull                                # get changes made on the other machine
+    # ... add or edit YAML files ...
+    python3 src/build_db.py --check         # fix anything it reports
+    git add data/
+    git commit -m "data: add <what you added>"
+    git push
 
-### Standard Commit & Push After Adding Data or Code
+### Is the website up to date?
+The page header shows the build time and the number of watches and movements. If it is older than your last push, open the **Actions** tab on GitHub (or run `gh run list --limit 3`). A red run means a YAML problem; click it and open the *Validate YAML and build database + web page* step to see the list of errors. Fix the files, push again, and the site updates within a minute or two.
 
-    cd ~/Projects/watch-agent
-    git pull origin main --rebase
-    git add data/ src/ horology_catalog.tex horology_catalog.pdf
-    git commit -m "data: update horological records and catalog"
-    git push origin main
-
-### Emergency Recovery (If Local Git State Gets Blocked on `horology.db`)
-If Git refuses to pull or push because both your local machine and the GitHub Actions bot modified `horology.db` at the same time, run this safe recovery sequence to preserve your YAML/Python/LaTeX files while resetting the binary database conflict:
-
-    cd ~/Projects/watch-agent
-    mkdir -p /tmp/watch_backup/src
-    cp -f src/*.py /tmp/watch_backup/src/ 2>/dev/null || true
-    cp -f horology_catalog.* /tmp/watch_backup/ 2>/dev/null || true
-    cp -rf data /tmp/watch_backup/ 2>/dev/null || true
-    git merge --abort 2>/dev/null || true
-    git rebase --abort 2>/dev/null || true
-    git fetch origin
-    git checkout main
-    git reset --hard origin/main
-    cp -f /tmp/watch_backup/src/*.py src/ 2>/dev/null || true
-    cp -f /tmp/watch_backup/horology_catalog.* . 2>/dev/null || true
-    cp -rf /tmp/watch_backup/data/* data/ 2>/dev/null || true
-    python3 src/build_db.py
-    git add .
-    git commit -m "chore: sync local updates with remote main"
-    git push origin main
-
-### Checking GitHub Actions & GitHub Pages Status via CLI
-- **List active workflows:** `gh workflow list`
-- **Check recent build runs:** `gh run list --limit 3`
-- **Inspect a specific run:** `gh run view <RUN_ID>`
-- **Manually trigger a rebuild:** `gh workflow run "Validate, Build SQLite & Publish Datasette Pages"`
-
-> **Note on GitHub Actions Node.js Warnings:** You may occasionally see an annotation in GitHub Actions stating *"Node.js 20 is deprecated... actions are being forced to run on Node.js 24"*. This is a harmless informational notice from GitHub's cloud runner environment regarding its internal JavaScript action wrappers and does not affect your build or deployment.
+To rebuild by hand: `gh workflow run "Validate, Build & Deploy Pages"`.
 
 ---
 
@@ -138,49 +110,22 @@ If Git refuses to pull or push because both your local machine and the GitHub Ac
 
 ---
 
-## 6. AI-Assisted Narrative-to-YAML Ingestion Pipeline
+## 6. Asking an AI (ChatGPT, Gemini, Claude) to Write YAML Records
 
-To convert unstructured historical notes, watch reviews, or technical descriptions into validated database records, use the following prose specification standard and AI prompt template with an LLM (such as Gemini).
+The complete, authoritative format is in **[`docs/YAML_FORMAT.md`](docs/YAML_FORMAT.md)**. It lists every allowed key, every allowed enum value, how to write unknown values, and gives one full valid example of each record type.
 
-### A. Required Elements in the Prose Narrative
-When writing or providing a prose description for conversion, ensure it contains the following technical details so the AI agent can accurately map them to `MovementSpec` and `WatchReference` schemas:
+1. Open `docs/YAML_FORMAT.md` (on GitHub, use the *Raw* button) and copy all of it.
+2. Paste it into the AI, followed by:
 
-1. **Movement Core Identification:** Manufacturer name, exact caliber number or trade name, and ebauche ancestry (if applicable).
-2. **Kinematic Architecture:** Winding type (`Manual` vs. `Automatic`) and specific winding mechanism (e.g., `Bidirectional (Seiko Magic Lever)`, `Bidirectional (Reversing Wheels)`, `Bidirectional (Pellaton Pawl)`, or `None (Manual)`).
-3. **Escapement & Performance:** Escapement type (`Swiss Lever`, `Co-Axial`, `Chronergy`, etc.), operating frequency in VPH (e.g., `18000`, `21600`, `28800`), jewel count, and power reserve in hours.
-4. **Physical Dimensions:** Diameter and height in millimeters (mm).
-5. **Watch Reference Linkage (Optional):** Brand, model name, family, reference numbers (e.g., `2531.80.00`), production years, and case diameter.
-6. **Test Certifications (Optional):** Standards passed (e.g., `COSC (ISO 3159)`, `ISO 6425 Diver`, `DIN 8309 Antimagnetic`), accuracy tolerances in seconds/day, water resistance in bar, and magnetic resistance in Gauss.
+   ```text
+   Using exactly the format above, convert the following notes into YAML files.
+   Use null for anything the notes do not state; do not guess.
 
----
+   [your notes here]
+   ```
 
-### B. AI Conversion Prompt Template
+3. Save each block the AI returns as the file name it gives (e.g. `data/movements/omega_861.yaml`).
+4. Run `python3 src/build_db.py --check`. If it reports problems, paste the error list back to the AI and ask it to correct the files.
+5. Commit and push.
 
-Copy and paste the prompt below into Gemini along with your prose narrative:
-
-```text
-You are an expert horological data archivist and Python Pydantic engineer. Your task is to read the narrative description of a mechanical watch and its movement below, and extract two strictly valid YAML blocks: one for the movement spec and one for the watch reference (if watch details are provided).
-
-### Schema Constraints & Allowed Enums:
-1. winding_type: Must be exactly "Manual" or "Automatic".
-2. winding_mechanism: Must be one of:
-   - "None (Manual)"
-   - "Unidirectional (Pawl/Click)"
-   - "Bidirectional (Reversing Wheels)"
-   - "Bidirectional (Seiko Magic Lever)"
-   - "Bidirectional (Pellaton Pawl)"
-   - "Bumper / Hammer"
-   - "Peripheral Rotor"
-   - "Micro-Rotor / Planetary"
-3. escapement_type: Must be one of:
-   - "Swiss Lever", "Co-Axial", "Chronergy", "Detent", "Cylinder", "Anchor", "Duplex"
-4. frequencies: 18000, 19800, 21600, 28800, 36000, etc.
-
-### Output Format:
-Return ONLY two markdown code blocks containing valid YAML files:
-1. File 1: `data/movements/<caliber_id>.yaml`
-2. File 2: `data/watches/<watch_id>.yaml` (if applicable)
-
-### Narrative Description to Convert:
-[INSERT YOUR PROSE NARRATIVE HERE]
-```
+Good notes include: manufacturer and caliber number, ebauche ancestry, manual vs. automatic and the winding mechanism, escapement, frequency (vph), jewels, power reserve; and for a watch: brand, family, model, reference numbers, production years, and any certifications (COSC, METAS, ISO 6425, ...) with their accuracy, water and magnetic ratings.

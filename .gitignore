@@ -22,3 +22,11 @@ Thumbs.db
 *.log
 *.out
 *.toc
+
+# Built by CI (src/build_db.py) and deployed to GitHub Pages; never committed
+horology.db
+index.html
+_site/
+
+# Editor backups
+*~

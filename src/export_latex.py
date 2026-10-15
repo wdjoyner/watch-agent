@@ -161,8 +161,8 @@ To maintain compact, readable specification tables, winding mechanisms, escapeme
         wnd_code = encode_winding(m["winding_type"], m["winding_mechanism"])
         esc_code = encode_escapement(m["escapement_type"])
         freq = f"{int(m['frequency_vph']):,}"
-        jewels = str(m["jewels"])
-        pwr = f"{float(m['power_reserve_hours']):.0f}"
+        jewels = "--" if m["jewels"] is None else str(m["jewels"])
+        pwr = "--" if m["power_reserve_hours"] is None else f"{float(m['power_reserve_hours']):.0f}"
 
         latex_content += (
             f"\\texttt{{{cal_id}}} & {mfg_model} & "

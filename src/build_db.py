@@ -1,157 +1,315 @@
+# src/build_db.py
+"""
+Validate every YAML record in data/ against src/schema.py, then compile
+horology.db (SQLite) and a static index.html for GitHub Pages.
+
+    python3 src/build_db.py            # validate + build horology.db + index.html
+    python3 src/build_db.py --check    # validate only (writes nothing)
+
+If any file is invalid, ALL problems in ALL files are listed and nothing is
+built, so a bad YAML file can never silently produce a broken database.
+"""
+import argparse
+import html
+import json
 import sqlite3
-import yaml
+import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
-DB_PATH = "horology.db"
-MOVEMENTS_DIR = Path("data/movements")
-WATCHES_DIR = Path("data/watches")
+import yaml
+from pydantic import ValidationError
 
-def build_database():
-    if Path(DB_PATH).exists():
-        Path(DB_PATH).unlink()
-        
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from schema import MovementSpec, WatchReference  # noqa: E402
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+MOVEMENTS_DIR = ROOT_DIR / "data" / "movements"
+WATCHES_DIR = ROOT_DIR / "data" / "watches"
+DB_PATH = ROOT_DIR / "horology.db"
+HTML_PATH = ROOT_DIR / "index.html"
+
+
+# ---------------------------------------------------------------- validation
+def _format_pydantic(e: ValidationError) -> list[str]:
+    lines = []
+    for err in e.errors():
+        loc = ".".join(str(x) for x in err["loc"]) or "(file)"
+        got = err.get("input")
+        got_s = "" if isinstance(got, dict) else f"  (got: {got!r})"
+        lines.append(f"{loc}: {err['msg']}{got_s}")
+    return lines
+
+
+def _load(path: Path, model, id_field: str, errors: dict):
+    try:
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as e:
+        errors[path] = [f"YAML syntax error: {e}"]
+        return None
+    if not isinstance(raw, dict):
+        errors[path] = ["File must contain a single YAML mapping (key: value lines)."]
+        return None
+    try:
+        rec = model.model_validate(raw)
+    except ValidationError as e:
+        errors[path] = _format_pydantic(e)
+        return None
+    rec_id = getattr(rec, id_field)
+    if rec_id != path.stem:
+        errors.setdefault(path, []).append(
+            f"{id_field} '{rec_id}' must match the file name (expected '{path.stem}')."
+        )
+        return None
+    return rec
+
+
+def load_all():
+    errors: dict[Path, list[str]] = {}
+    movements: dict[str, MovementSpec] = {}
+    watches: dict[str, WatchReference] = {}
+
+    for p in sorted(MOVEMENTS_DIR.glob("*.y*ml")):
+        m = _load(p, MovementSpec, "caliber_id", errors)
+        if m:
+            movements[m.caliber_id] = m
+
+    for p in sorted(WATCHES_DIR.glob("*.y*ml")):
+        w = _load(p, WatchReference, "watch_id", errors)
+        if not w:
+            continue
+        if w.caliber_id not in movements and (MOVEMENTS_DIR / f"{w.caliber_id}.yaml") not in errors:
+            errors.setdefault(p, []).append(
+                f"caliber_id '{w.caliber_id}' has no movement file. "
+                f"Create data/movements/{w.caliber_id}.yaml (or fix the spelling)."
+            )
+            continue
+        watches[w.watch_id] = w
+
+    return movements, watches, errors
+
+
+# ------------------------------------------------------------------- SQLite
+SCHEMA_SQL = """
+CREATE TABLE movements (
+    caliber_id TEXT PRIMARY KEY,
+    manufacturer TEXT NOT NULL,
+    caliber_number TEXT NOT NULL,
+    base_caliber TEXT,
+    winding_type TEXT NOT NULL,
+    winding_mechanism TEXT NOT NULL,
+    escapement_type TEXT NOT NULL,
+    frequency_vph INTEGER NOT NULL,
+    jewels INTEGER,
+    power_reserve_hours REAL,
+    hacking INTEGER,
+    hand_winding INTEGER NOT NULL,
+    description TEXT NOT NULL
+);
+CREATE TABLE watches (
+    watch_id TEXT PRIMARY KEY,
+    brand TEXT NOT NULL,
+    model_family TEXT NOT NULL,
+    model_name TEXT NOT NULL,
+    reference_numbers_json TEXT NOT NULL,
+    caliber_id TEXT NOT NULL REFERENCES movements(caliber_id),
+    production_year_start INTEGER,
+    production_year_end INTEGER,
+    notes TEXT
+);
+CREATE TABLE watch_tests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    watch_id TEXT NOT NULL REFERENCES watches(watch_id) ON DELETE CASCADE,
+    standard TEXT NOT NULL,
+    accuracy_min_spd REAL,
+    accuracy_max_spd REAL,
+    water_resistance_bar REAL,
+    water_resistance_meters INTEGER,
+    magnetic_resistance_gauss INTEGER,
+    test_notes TEXT
+);
+CREATE VIEW v_watch_catalog AS
+SELECT w.watch_id, w.brand, w.model_family, w.model_name,
+       w.reference_numbers_json AS reference_numbers,
+       w.production_year_start, w.production_year_end,
+       m.manufacturer AS movement_manufacturer, m.caliber_number, m.base_caliber,
+       m.winding_type, m.winding_mechanism, m.escapement_type,
+       m.frequency_vph, m.jewels, m.power_reserve_hours
+FROM watches w JOIN movements m ON w.caliber_id = m.caliber_id;
+"""
+
+
+def _b(v):
+    return None if v is None else int(v)
+
+
+def compile_sqlite(movements, watches) -> None:
+    if DB_PATH.exists():
+        DB_PATH.unlink()
     conn = sqlite3.connect(DB_PATH)
     conn.execute("PRAGMA foreign_keys = ON;")
-    cursor = conn.cursor()
-    
-    # Create tables
-    cursor.execute("""
-    CREATE TABLE movements (
-        caliber_id TEXT PRIMARY KEY,
-        manufacturer TEXT NOT NULL,
-        family TEXT,
-        winding_type TEXT NOT NULL,
-        winding_mechanism TEXT NOT NULL,
-        escapement_type TEXT NOT NULL,
-        frequency_vph INTEGER NOT NULL,
-        jewels INTEGER NOT NULL,
-        power_reserve_hrs REAL NOT NULL,
-        diameter_mm REAL NOT NULL,
-        height_mm REAL NOT NULL,
-        notes TEXT
-    );
-    """)
-    
-    cursor.execute("""
-    CREATE TABLE watches (
-        watch_id TEXT PRIMARY KEY,
-        brand TEXT NOT NULL,
-        model TEXT NOT NULL,
-        family TEXT,
-        reference_number TEXT,
-        caliber_id TEXT NOT NULL,
-        case_diameter_mm REAL NOT NULL,
-        FOREIGN KEY (caliber_id) REFERENCES movements(caliber_id)
-    );
-    """)
-    
-    # Insert movements with safe defaults
-    for yml_file in MOVEMENTS_DIR.glob("*.yaml"):
-        data = yaml.safe_load(yml_file.read_text(encoding="utf-8")) or {}
-        power_reserve = data.get("power_reserve_hrs") or data.get("power_reserve_hours") or 40.0
-        diameter = data.get("diameter_mm") or 36.6
-        height = data.get("height_mm") or 4.5
-        notes = data.get("notes") or data.get("description") or ""
-
-        cursor.execute("""
-        INSERT INTO movements (caliber_id, manufacturer, family, winding_type, winding_mechanism, escapement_type, frequency_vph, jewels, power_reserve_hrs, diameter_mm, height_mm, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            data.get("caliber_id"),
-            data.get("manufacturer"),
-            data.get("family"),
-            data.get("winding_type"),
-            data.get("winding_mechanism"),
-            data.get("escapement_type"),
-            data.get("frequency_vph"),
-            data.get("jewels"),
-            float(power_reserve),
-            float(diameter),
-            float(height),
-            str(notes)
-        ))
-        
-    # Insert watches with safe fallbacks for model and dimensions
-    for yml_file in WATCHES_DIR.glob("*.yaml"):
-        data = yaml.safe_load(yml_file.read_text(encoding="utf-8")) or {}
-        watch_id = data.get("watch_id") or yml_file.stem
-        model = data.get("model") or data.get("watch_model") or data.get("name") or watch_id
-        
-        cursor.execute("""
-        INSERT INTO watches (watch_id, brand, model, family, reference_number, caliber_id, case_diameter_mm)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            watch_id,
-            data.get("brand") or "Unknown Brand",
-            model,
-            data.get("family"),
-            data.get("reference_number"),
-            data.get("caliber_id"),
-            float(data.get("case_diameter_mm") or 40.0)
-        ))
-        
+    conn.executescript(SCHEMA_SQL)
+    for m in movements.values():
+        conn.execute(
+            "INSERT INTO movements VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (m.caliber_id, m.manufacturer, m.caliber_number, m.base_caliber,
+             m.winding_type.value, m.winding_mechanism.value, m.escapement_type,
+             m.frequency_vph, m.jewels, m.power_reserve_hours,
+             _b(m.hacking), _b(m.hand_winding), m.description),
+        )
+    for w in watches.values():
+        conn.execute(
+            "INSERT INTO watches VALUES (?,?,?,?,?,?,?,?,?)",
+            (w.watch_id, w.brand, w.model_family, w.model_name,
+             json.dumps(w.reference_numbers), w.caliber_id,
+             w.production_year_start, w.production_year_end, w.notes),
+        )
+        for t in w.tests_passed:
+            lo, hi = t.rated_accuracy_sec_per_day or (None, None)
+            conn.execute(
+                "INSERT INTO watch_tests (watch_id, standard, accuracy_min_spd, accuracy_max_spd,"
+                " water_resistance_bar, water_resistance_meters, magnetic_resistance_gauss, test_notes)"
+                " VALUES (?,?,?,?,?,?,?,?)",
+                (w.watch_id, t.standard.value, lo, hi, t.water_resistance_bar,
+                 t.water_resistance_meters, t.magnetic_resistance_gauss, t.test_notes),
+            )
     conn.commit()
     conn.close()
-    print("[OK] Database built successfully with robust fallbacks.")
 
-def generate_html_index():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT watch_id, brand, model, family, reference_number, caliber_id, case_diameter_mm FROM watches")
-    watches = cursor.fetchall()
-    
-    cursor.execute("SELECT caliber_id, manufacturer, family, winding_type, frequency_vph, power_reserve_hrs FROM movements")
-    movements = cursor.fetchall()
-    conn.close()
 
-    html = """<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Watch-Agent Horology Database</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #e0e0e0; margin: 0; padding: 2rem; }
-    h1, h2 { color: #ffffff; border-bottom: 1px solid #333; padding-bottom: 0.5rem; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; background: #1e1e1e; border-radius: 6px; overflow: hidden; }
-    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #2a2a2a; }
-    th { background: #252525; color: #ffffff; font-weight: 600; }
-    tr:hover { background: #2a2a2a; }
-    .footer { margin-top: 3rem; text-align: center; color: #777; font-size: 0.9rem; }
-  </style>
-</head>
-<body>
-  <h1>Watch-Agent Horology Database</h1>
-  <p>Local SQLite-backed mechanical watch and movement registry.</p>
+# ------------------------------------------------------------------ HTML page
+def _e(v, unit: str = "") -> str:
+    if v is None or v == "" or v == []:
+        return '<span class="na">—</span>'
+    if isinstance(v, bool):
+        return "Yes" if v else "No"
+    if isinstance(v, float) and v.is_integer():
+        v = int(v)
+    return html.escape(f"{v}{unit}")
 
-  <h2>Reference Watches</h2>
-  <table>
-    <tr><th>Watch ID</th><th>Brand</th><th>Model</th><th>Family</th><th>Reference</th><th>Caliber</th><th>Diameter</th></tr>
+
+def _years(a, b) -> str:
+    if a is None and b is None:
+        return _e(None)
+    return html.escape(f"{a or '?'}–{b or 'present'}")
+
+
+def _test_summary(t) -> str:
+    parts = [t.standard.value]
+    if t.rated_accuracy_sec_per_day:
+        lo, hi = t.rated_accuracy_sec_per_day
+        parts.append(f"{lo:+g}/{hi:+g} s/d")
+    if t.water_resistance_meters:
+        parts.append(f"{t.water_resistance_meters} m")
+    elif t.water_resistance_bar:
+        parts.append(f"{t.water_resistance_bar:g} bar")
+    if t.magnetic_resistance_gauss:
+        parts.append(f"{t.magnetic_resistance_gauss:,} G")
+    return html.escape(", ".join(parts))
+
+
+def generate_html(movements, watches) -> None:
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    w_rows = []
+    for w in sorted(watches.values(), key=lambda w: (w.brand, w.model_family, w.model_name)):
+        m = movements[w.caliber_id]
+        tests = "<br>".join(_test_summary(t) for t in w.tests_passed) or _e(None)
+        note = f"<div class=note>{_e(w.notes)}</div>" if w.notes else ""
+        w_rows.append(
+            f"<tr><td>{_e(w.brand)}</td><td>{_e(w.model_family)}</td><td>{_e(w.model_name)}{note}</td>"
+            f"<td>{_e(', '.join(w.reference_numbers))}</td>"
+            f"<td><a href='#{m.caliber_id}'>{_e(m.manufacturer + ' ' + m.caliber_number)}</a></td>"
+            f"<td>{_years(w.production_year_start, w.production_year_end)}</td><td>{tests}</td></tr>"
+        )
+    m_rows = []
+    for m in sorted(movements.values(), key=lambda m: (m.manufacturer, m.caliber_number)):
+        m_rows.append(
+            f"<tr id='{m.caliber_id}'><td>{_e(m.manufacturer)}</td><td>{_e(m.caliber_number)}"
+            f"<div class=note>{_e(m.description)}</div></td><td>{_e(m.base_caliber)}</td>"
+            f"<td>{_e(m.winding_type.value)}</td><td>{_e(m.winding_mechanism.value)}</td>"
+            f"<td>{_e(m.escapement_type)}</td><td class=num>{m.frequency_vph:,}</td>"
+            f"<td class=num>{_e(m.jewels)}</td><td class=num>{_e(m.power_reserve_hours, ' h')}</td>"
+            f"<td>{_e(m.hacking)}</td></tr>"
+        )
+
+    page = f"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Watch-Agent Horology Database</title>
+<style>
+:root {{ --bg:#fafaf8; --fg:#1d1d1b; --muted:#6b6b66; --line:#e2e2dc; --head:#f0efe9; --link:#1f5fa8; }}
+@media (prefers-color-scheme: dark) {{ :root {{ --bg:#141413; --fg:#e8e6df; --muted:#9a988f; --line:#2e2d2a; --head:#1f1e1c; --link:#7db3ef; }} }}
+body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--fg); margin:0; padding:1.5rem 16px; line-height:1.4; }}
+main {{ max-width: 1400px; margin: 0 auto; }}
+h1 {{ margin:0 0 .25rem; font-size:1.6rem; }} h2 {{ margin-top:2rem; font-size:1.2rem; }}
+.meta {{ color:var(--muted); font-size:.9rem; }} a {{ color:var(--link); }}
+input {{ font:inherit; padding:.45rem .6rem; width:100%; max-width:420px; box-sizing:border-box; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); margin-top:1rem; }}
+.wrap {{ overflow-x:auto; border:1px solid var(--line); border-radius:6px; }}
+table {{ border-collapse:collapse; width:100%; font-size:.9rem; }}
+th, td {{ padding:.5rem .7rem; text-align:left; vertical-align:top; border-bottom:1px solid var(--line); }}
+th {{ background:var(--head); cursor:pointer; white-space:nowrap; }}
+.num {{ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }}
+.note {{ color:var(--muted); font-size:.82rem; margin-top:.2rem; max-width:48ch; }}
+.na {{ color:var(--muted); }} tr:target {{ background:var(--head); }}
+</style></head><body><main>
+<h1>Watch-Agent Horology Database</h1>
+<div class="meta">{len(watches)} watches · {len(movements)} movements · built {stamp} ·
+<a href="horology.db">download SQLite</a> ·
+<a href="https://lite.datasette.io/?url=https://wdjoyner.github.io/watch-agent/horology.db">query with SQL (Datasette Lite)</a> ·
+<a href="https://github.com/wdjoyner/watch-agent">source</a></div>
+<input id="q" type="search" placeholder="Filter rows (e.g. Omega, Co-Axial, 28800)…">
+<h2>Watches</h2><div class="wrap"><table class="sortable"><thead><tr>
+<th>Brand</th><th>Family</th><th>Model</th><th>Reference(s)</th><th>Movement</th><th>Years</th><th>Tests</th>
+</tr></thead><tbody>
+{chr(10).join(w_rows)}
+</tbody></table></div>
+<h2>Movements</h2><div class="wrap"><table class="sortable"><thead><tr>
+<th>Maker</th><th>Caliber</th><th>Base</th><th>Winding</th><th>Mechanism</th><th>Escapement</th>
+<th class=num>vph</th><th class=num>Jewels</th><th class=num>Reserve</th><th>Hacking</th>
+</tr></thead><tbody>
+{chr(10).join(m_rows)}
+</tbody></table></div>
+</main>
+<script>
+document.getElementById('q').addEventListener('input', e => {{
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll('tbody tr').forEach(r => r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none');
+}});
+document.querySelectorAll('table.sortable th').forEach((th, i) => th.addEventListener('click', () => {{
+  const tb = th.closest('table').tBodies[0], asc = th.dataset.asc !== '1';
+  th.closest('tr').querySelectorAll('th').forEach(h => delete h.dataset.asc); th.dataset.asc = asc ? '1' : '0';
+  const key = r => {{ const t = r.cells[i].textContent.trim(), n = parseFloat(t.replace(/,/g, '')); return isNaN(n) ? t.toLowerCase() : n; }};
+  [...tb.rows].sort((a, b) => {{ const x = key(a), y = key(b); return (x > y ? 1 : x < y ? -1 : 0) * (asc ? 1 : -1); }}).forEach(r => tb.appendChild(r));
+}}));
+</script></body></html>
 """
-    for w in watches:
-        html += f"    <tr><td><code>{w[0]}</code></td><td>{w[1]}</td><td>{w[2]}</td><td>{w[3] or '-'}</td><td>{w[4] or '-'}</td><td><code>{w[5]}</code></td><td>{w[6]} mm</td></tr>\n"
+    HTML_PATH.write_text(page, encoding="utf-8")
 
-    html += """  </table>
 
-  <h2>Movement Calibers</h2>
-  <table>
-    <tr><th>Caliber ID</th><th>Manufacturer</th><th>Family</th><th>Winding</th><th>Frequency</th><th>Power Reserve</th></tr>
-"""
-    for m in movements:
-        html += f"    <tr><td><code>{m[0]}</code></td><td>{m[1]}</td><td>{m[2] or '-'}</td><td>{m[3]}</td><td>{m[4]} vph</td><td>{m[5]} hrs</td></tr>\n"
+# ---------------------------------------------------------------------- main
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--check", action="store_true", help="validate only; do not write horology.db or index.html")
+    args = ap.parse_args()
 
-    html += """  </table>
+    movements, watches, errors = load_all()
+    if errors:
+        print(f"\n[FAILED] {len(errors)} file(s) have problems. Nothing was built.\n", file=sys.stderr)
+        for path, msgs in errors.items():
+            print(f"  {path.relative_to(ROOT_DIR)}", file=sys.stderr)
+            for msg in msgs:
+                print(f"      - {msg}", file=sys.stderr)
+        print("\nSee docs/YAML_FORMAT.md for the required format.", file=sys.stderr)
+        return 1
 
-  <div class="footer">
-    <p>Generated automatically via Python Pydantic pipeline &bull; <a href="horology.db" style="color: #4da6ff;">Download SQLite DB</a></p>
-  </div>
-</body>
-</html>
-"""
-    Path("index.html").write_text(html, encoding="utf-8")
-    print("[OK] Generated static index.html successfully.")
+    print(f"[OK] {len(movements)} movements and {len(watches)} watches are valid.")
+    if args.check:
+        return 0
+    compile_sqlite(movements, watches)
+    generate_html(movements, watches)
+    print(f"[OK] Wrote {DB_PATH.name} and {HTML_PATH.name}.")
+    return 0
+
 
 if __name__ == "__main__":
-    build_database()
-    generate_html_index()
+    sys.exit(main())
