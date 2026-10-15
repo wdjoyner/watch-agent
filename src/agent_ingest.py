@@ -175,7 +175,7 @@ def main() -> None:
 
     if args.build:
         print("[INFO] Rebuilding SQLite database...")
-        build_db.main()
+        build_db.main([])
 
 
 if __name__ == "__main__":
