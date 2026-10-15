@@ -1,11 +1,15 @@
 watch_id: omega_1120
 brand: Omega
-model_family: '1120'
-model_name: Automatic Movement
-reference_numbers:
-- '1120'
+model_family: Seamaster
+model_name: Seamaster Automatic (calibre 1120)
+reference_numbers: []
 caliber_id: omega_1120
 production_year_start: null
 production_year_end: null
 tests_passed: []
-notes: null
+notes: >-
+  Seamaster serviced by The Watch Guy (watchguy.co.uk, "Service Omega Seamaster
+  Calibre 1120"). Calibre 1120 is ETA 2892-2 based; this example has an
+  antimagnetic dust cover over a decorated rotor. Service included a new
+  mainspring; a winding fault was traced to the dust cover rubbing the rotor.
+  Reference number and production years not stated in the source.
