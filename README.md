@@ -107,6 +107,7 @@ To rebuild by hand: `gh workflow run "Validate, Build & Deploy Pages"`.
 
 - **Coding Design & System Architecture:** Jointly designed by **David Joyner** and **Gemini Argon**, combining relational horological taxonomy, multi-machine Git workflows, and compact LaTeX cataloging.
 - **Python Implementation & Automation:** Python scripts (`src/schema.py`, `src/build_db.py`, `src/agent_ingest.py`, `src/export_latex.py`, and `src/seed_core_calibers.py`), Pydantic validation loops, and GitHub Actions CI/CD pipelines developed with assistance from **Gemini Argon**.
+- **Validation, Publishing & AI Data-Entry Format:** Rewrite of `src/build_db.py` (full-schema validation with all-errors reporting, `--check` mode, and the generated static web catalog), the consolidated GitHub Pages workflow, and the AI-facing record specification `docs/YAML_FORMAT.md` developed with assistance from **Claude** (Anthropic, Claude Opus 5.5).
 
 ---
 
