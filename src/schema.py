@@ -1,7 +1,7 @@
 # src/schema.py
 from enum import Enum
 from typing import List, Optional, Tuple
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class WindingType(str, Enum):
@@ -33,6 +33,9 @@ class CertificationStandard(str, Enum):
 
 
 class MovementSpec(BaseModel):
+    # Reject unknown/misspelled keys so mistakes are reported instead of silently dropped.
+    model_config = ConfigDict(extra="forbid")
+
     caliber_id: str = Field(
         ...,
         pattern=r"^[a-z0-9_]+$",
@@ -52,9 +55,11 @@ class MovementSpec(BaseModel):
     frequency_vph: int = Field(
         ..., description="Vibrations per hour, e.g., 18000, 21600, 25200, 28800, 36000"
     )
-    jewels: int = Field(..., ge=0, le=100)
-    power_reserve_hours: float = Field(..., gt=0, le=2400)
-    hacking: bool = False
+    # jewels, power_reserve_hours and hacking may be null when genuinely unknown.
+    # Use null rather than guessing a value.
+    jewels: Optional[int] = Field(None, ge=0, le=100)
+    power_reserve_hours: Optional[float] = Field(None, gt=0, le=2400)
+    hacking: Optional[bool] = None
     hand_winding: bool = True
     description: str = Field(..., min_length=10)
 
@@ -88,6 +93,9 @@ class MovementSpec(BaseModel):
 
 
 class TestAndCertification(BaseModel):
+    # Reject unknown/misspelled keys so mistakes are reported instead of silently dropped.
+    model_config = ConfigDict(extra="forbid")
+
     standard: CertificationStandard
     rated_accuracy_sec_per_day: Optional[Tuple[float, float]] = Field(
         None,
@@ -104,6 +112,9 @@ class TestAndCertification(BaseModel):
 
 
 class WatchReference(BaseModel):
+    # Reject unknown/misspelled keys so mistakes are reported instead of silently dropped.
+    model_config = ConfigDict(extra="forbid")
+
     watch_id: str = Field(
         ...,
         pattern=r"^[a-z0-9_]+$",
@@ -112,7 +123,8 @@ class WatchReference(BaseModel):
     brand: str = Field(..., min_length=1)
     model_family: str = Field(..., min_length=1)
     model_name: str = Field(..., min_length=1)
-    reference_numbers: List[str] = Field(..., min_length=1)
+    # May be an empty list [] when no reference number is known yet.
+    reference_numbers: List[str] = Field(default_factory=list)
     caliber_id: str = Field(
         ..., description="Foreign key matching MovementSpec.caliber_id"
     )

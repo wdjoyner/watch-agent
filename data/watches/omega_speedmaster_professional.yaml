@@ -7,5 +7,7 @@ caliber_id: omega_3861
 production_year_start: null
 production_year_end: null
 tests_passed:
-- METAS Master Chronometer
+- standard: METAS (Master Chronometer)
+  rated_accuracy_sec_per_day: [0.0, 5.0]
+  magnetic_resistance_gauss: 15000
 notes: The current generation of the Speedmaster Professional "Moonwatch".

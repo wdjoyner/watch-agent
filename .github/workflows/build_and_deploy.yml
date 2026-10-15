@@ -1,0 +1,57 @@
+name: Validate, Build & Deploy Pages
+
+# Runs on every push to main (and by hand from the Actions tab).
+# 1. Validates every YAML file in data/ against src/schema.py.
+#    If anything is wrong, the run fails with a list of every problem,
+#    and the website keeps showing the last good version.
+# 2. Builds horology.db and index.html.
+# 3. Publishes them to https://wdjoyner.github.io/watch-agent/
+#
+# Requires: Settings -> Pages -> Build and deployment -> Source = "GitHub Actions".
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "pydantic>=2.10" "pyyaml>=6.0"
+      - name: Validate YAML and build database + web page
+        run: python3 src/build_db.py
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp index.html horology.db metadata.json _site/
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: _site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
