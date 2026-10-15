@@ -30,3 +30,6 @@ _site/
 
 # Editor backups
 *~
+
+# Reports and rejected records from src/agent_ingest.py
+ingest_runs/

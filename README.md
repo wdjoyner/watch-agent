@@ -31,24 +31,39 @@
 - `data/watches/` — Validated watch reference YAML files
 - `src/schema.py` — Pydantic v2 models & horological validation rules
 - `src/build_db.py` — Compiles YAML records into SQLite (`horology.db`)
-- `src/agent_ingest.py` — Ollama LLM text-to-YAML extractor with retry loop
+- `src/agent_ingest.py` — Ollama LLM notes-to-YAML extractor (single notes or a folder) with validation/retry loop
+- `src/agent_prompt.py` — builds the model's instructions from `docs/YAML_FORMAT.md` and real records; regenerates `Modelfile`
+- `tests/` — tests for the ingester (no Ollama needed): `python3 -m pytest -q`
 - `src/csv_to_yaml.py` — turns spreadsheet rows (`templates/*.csv`) into validated YAML files
 - `src/export_latex.py` — Generates compact LaTeX catalog from `horology.db`
 - `horology.db`, `index.html` — built locally or by CI; not committed (listed in `.gitignore`)
 - `horology_catalog.tex` / `horology_catalog.pdf` — Typeset print catalog
 - `metadata.json` — Datasette facets and canned SQL query definitions
-- `requirements.txt` — Python dependencies (`pydantic`, `pyyaml`, `requests`)
+- `requirements.txt` — Python dependencies (`pydantic`, `pyyaml`, `ollama`, `pytest`)
 
 ---
 
 ## 3. Daily Workflows & Usage
 
-### Ingesting a New Movement or Watch via Local Ollama Agent
-Ensure Ollama is running locally (`ollama list`), activate your virtual environment, and run `src/agent_ingest.py`:
+### Ingesting Notes via the Local Ollama Agent
+`src/agent_ingest.py` sends your notes to the local `watch-agent` model (built from `qwen3:30b`) together with the full format in `docs/YAML_FORMAT.md` and a few real records from `data/` as examples. Notes may describe only a movement, only a watch, or several of each.
 
-    python3 src/agent_ingest.py --build "Omega 1120 automatic movement (based on ETA 2892-A2), 28800 vph, 23 jewels, 44 hour power reserve, bidirectional rotor with reverser gears, Swiss lever escapement."
+One-time setup (and again whenever `docs/YAML_FORMAT.md` changes, if you want `ollama run watch-agent` to know the new format):
 
-    python3 src/agent_ingest.py --type watch --build "Omega Seamaster Professional 300M Chronometer ref 2531.80.00, powered by caliber omega_1120, produced 1993 to 2006, COSC certified (-4 to +6 spd) and 30 bar water resistance."
+    python3 src/agent_prompt.py --modelfile
+    ollama create watch-agent -f Modelfile
+
+One set of notes:
+
+    python3 src/agent_ingest.py "Omega 1120 automatic movement (based on ETA 2892-A2), 28800 vph, 23 jewels, 44 hour power reserve, bidirectional rotor with reverser gears, Swiss lever escapement."
+    python3 src/agent_ingest.py --file notes/seamaster.txt
+
+A folder of note files (`.txt` or `.md`, subfolders included):
+
+    python3 src/agent_ingest.py --dir ~/Research/Bulova --dry-run   # preview; writes nothing to data/
+    python3 src/agent_ingest.py --dir ~/Research/Bulova
+
+Every record is checked before it is written: the schema (`src/schema.py`), the watch-to-movement link, and a "never guess" check that numbers, caliber numbers and reference numbers really appear in the notes. Problems are sent back to the model to fix. Only records that pass are written to `data/`; the rest are saved with their reasons in `ingest_runs/<date-time>/rejected/`, listed in `ingest_runs/<date-time>/report.txt` (not committed). Existing files in `data/` are kept unless you add `--overwrite`.
 
 ### Manually Validating YAML & Building `horology.db`
 If you create or edit YAML files by hand (or with an AI) in `data/movements/` or `data/watches/`, check them before pushing:
