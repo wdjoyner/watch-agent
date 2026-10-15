@@ -32,6 +32,7 @@
 - `src/schema.py` — Pydantic v2 models & horological validation rules
 - `src/build_db.py` — Compiles YAML records into SQLite (`horology.db`)
 - `src/agent_ingest.py` — Ollama LLM text-to-YAML extractor with retry loop
+- `src/csv_to_yaml.py` — turns spreadsheet rows (`templates/*.csv`) into validated YAML files
 - `src/export_latex.py` — Generates compact LaTeX catalog from `horology.db`
 - `horology.db`, `index.html` — built locally or by CI; not committed (listed in `.gitignore`)
 - `horology_catalog.tex` / `horology_catalog.pdf` — Typeset print catalog
@@ -54,6 +55,29 @@ If you create or edit YAML files by hand (or with an AI) in `data/movements/` or
 
     python3 src/build_db.py --check     # report problems only
     python3 src/build_db.py             # also build horology.db and index.html (open index.html to preview the site)
+
+### Adding Many Records from a Spreadsheet
+For entering dozens of movements or watches at once, fill in a spreadsheet instead of writing YAML by hand.
+
+1. Open `templates/movements.csv` and/or `templates/watches.csv` in Numbers or Excel. The first row holds the column names; do not change it. Add one row per movement or watch.
+2. Save (in Numbers: *File → Export To → CSV*, keeping the same file name).
+3. Preview, then write the YAML files:
+
+       python3 src/csv_to_yaml.py --dry-run templates/movements.csv templates/watches.csv
+       python3 src/csv_to_yaml.py templates/movements.csv templates/watches.csv
+       python3 src/build_db.py --check
+
+Spreadsheet conventions:
+
+- Leave a cell **blank** when a value is unknown.
+- Yes/no columns (`hacking`, `hand_winding`) accept `yes`/`no`.
+- Enum values (`winding_type`, `winding_mechanism`, `test_standard`) must be one of the values listed in `docs/YAML_FORMAT.md`, but capitals do not matter. `winding_mechanism` may be left blank for a Manual movement.
+- `reference_numbers`: separate several with a semicolon, e.g. `2254.50.00; 2254.50`.
+- `test_accuracy`: min/max seconds per day, e.g. `-4/+6`.
+- A watch with more than one certification: repeat its `watch_id` on another row and fill in only the `test_*` columns there.
+- Movements come first: every watch's `caliber_id` must be in the movements spreadsheet or already in `data/movements/`.
+
+Every row is checked against the schema before anything is written. If any row has a problem, the script lists every problem (with spreadsheet line numbers) and writes nothing. Existing YAML files are skipped unless you add `--overwrite`. Once the YAML files are written and pushed, you can clear the rows out of the spreadsheet; the YAML files are the record.
 
 ### Generating the Typeset LaTeX Catalog (`horology_catalog.pdf`)
 To keep multi-column specification tables readable within standard letter-page margins without overflowing, `src/export_latex.py` maps verbose horological descriptions to compact 2-to-4-character alphanumeric codes and wraps long reference lists inside fixed-width columns:

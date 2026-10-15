@@ -142,6 +142,13 @@ notes: Black wave dial, sword hands, helium escape valve.
 
 ---
 
+## Entering many records at once
+
+To enter many records without writing YAML, use the spreadsheet templates in
+`templates/` and `src/csv_to_yaml.py` (see the README, "Adding Many Records from a
+Spreadsheet"). The columns are the keys above, plus `test_*` columns for one
+certification per row.
+
 ## Checking your files before pushing
 
 From the repository folder:
